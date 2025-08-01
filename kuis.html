@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kuis Cerdas By @rhmdbe_</title>
+  <style>
+    body {
+      background: #1c1c1c;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+    .card {
+      background: #2a2a2a;
+      padding: 1rem;
+      border-radius: 1rem;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 0 10px #0f0;
+      margin-bottom: 1rem;
+    }
+    h2, p { text-align: center; }
+    .btn {
+      margin: 0.5rem;
+      padding: 0.7rem 1rem;
+      border: none;
+      border-radius: 0.5rem;
+      background: #0f0;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .btn:hover { background: #0c0; }
+    input[type=text], input[type=password] {
+      width: 90%;
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+      border-radius: 0.5rem;
+      border: none;
+    }
+    ol { text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>Game Kuis Cerdas 🧠</h1>
+
+  <div class="card" id="login-box">
+    <h2>Login / Daftar</h2>
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button class="btn" onclick="login()">Login</button>
+    <button class="btn" onclick="daftar()">Daftar</button>
+    <p id="login-status"></p>
+  </div>
+
+  <div class="card" id="quiz-box" style="display:none">
+    <div id="soal"></div>
+    <div id="opsi"></div>
+    <p id="skor">Skor: 0</p>
+    <p id="timer">Waktu: 15</p>
+    <p id="status"></p>
+  </div>
+
+  <p style="margin-top: 2rem; opacity: 0.6;">by @rhmdbe_</p>
+
+  <script>
+    const pertanyaan = [
+      { soal: \"Siapa penemu teori relativitas?\", opsi: [\"Einstein\", \"Newton\", \"Tesla\", \"Hawking\"], benar: \"Einstein\" },
+      { soal: \"Hasil dari 12 x 11 - (5 + 7) =\", opsi: [\"120\", \"115\", \"122\", \"125\"], benar: \"125\" },
+      { soal: \"Bahasa pemrograman untuk Android?\", opsi: [\"Java\", \"Python\", \"C++\", \"Swift\"], benar: \"Java\" },
+      { soal: \"Presiden RI ke-4?\", opsi: [\"Soekarno\", \"Habibie\", \"Gus Dur\", \"Megawati\"], benar: \"Gus Dur\" },
+      { soal: \"Simbol kimia Fe adalah?\", opsi: [\"Fluorine\", \"Ferum\", \"Fosfor\", \"Ferrite\"], benar: \"Ferum\" },
+      { soal: \"Benua terbesar?\", opsi: [\"Asia\", \"Afrika\", \"Amerika\", \"Eropa\"], benar: \"Asia\" },
+      { soal: \"Ibu kota Kanada?\", opsi: [\"Toronto\", \"Vancouver\", \"Ottawa\", \"Montreal\"], benar: \"Ottawa\" },
+      { soal: \"HTML singkatan dari?\", opsi: [\"Hyperlink Text Markup Language\", \"HyperText Markup Language\", \"High Text Machine\", \"None\"], benar: \"HyperText Markup Language\" }
+    ];
+
+    let indeks = 0, skor = 0, waktu = 15, timer = null;
+    let userLogin = \"\";
+
+    function login() {
+      const user = document.getElementById(\"username\").value;
+      const pass = document.getElementById(\"password\").value;
+      const akun = JSON.parse(localStorage.getItem(\"akun_\" + user));
+      if (!akun || akun.password !== pass) {
+        document.getElementById(\"login-status\").innerText = \"❌ Login gagal\";
+      } else {
+        userLogin = user;
+        document.getElementById(\"login-box\").style.display = \"none\";
+        document.getElementById(\"quiz-box\").style.display = \"block\";
+        tampilkanSoal();
+      }
+    }
+
+    function daftar() {
+      const user = document.getElementById(\"username\").value;
+      const pass = document.getElementById(\"password\").value;
+      localStorage.setItem(\"akun_\" + user, JSON.stringify({ password: pass }));
+      document.getElementById(\"login-status\").innerText = \"✅ Akun berhasil dibuat!\";
+    }
+
+    function tampilkanSoal() {
+      if (indeks >= pertanyaan.length) {
+        document.getElementById(\"soal\").innerHTML = \"<h2>🎉 Kuis Selesai!</h2>\";
+        document.getElementById(\"opsi\").innerHTML = \"\";
+        document.getElementById(\"status\").innerText = \"Skor akhir kamu: \" + skor;
+        simpanLeaderboard(userLogin, skor);
+        tampilkanLeaderboard();
+        clearInterval(timer);
+        return;
+      }
+
+      waktu = 15;
+      document.getElementById(\"timer\").innerText = \"Waktu: \" + waktu;
+      timer = setInterval(() => {
+        waktu--;
+        document.getElementById(\"timer\").innerText = \"Waktu: \" + waktu;
+        if (waktu <= 0) {
+          clearInterval(timer);
+          indeks++;
+          document.getElementById(\"status\").innerText = \"⏱ Waktu habis!\";
+          setTimeout(tampilkanSoal, 1000);
+        }
+      }, 1000);
+
+      const q = pertanyaan[indeks];
+      document.getElementById(\"soal\").innerHTML = `<h2>${q.soal}</h2>`;
+      const opsiDiv = document.getElementById(\"opsi\");
+      opsiDiv.innerHTML = \"\";
+      document.getElementById(\"status\").innerText = \"\";
+      q.opsi.forEach(pilihan => {
+        const btn = document.createElement(\"button\");
+        btn.className = \"btn\";
+        btn.textContent = pilihan;
+        btn.onclick = () => cekJawaban(pilihan);
+        opsiDiv.appendChild(btn);
+      });
+    }
+
+    function cekJawaban(pilihan) {
+      clearInterval(timer);
+      const benar = pertanyaan[indeks].benar;
+      if (pilihan === benar) {
+        skor += 20;
+        document.getElementById(\"status\").innerText = \"✅ Benar!\";
+      } else {
+        document.getElementById(\"status\").innerText = `❌ Salah! Jawaban: ${benar}`;
+      }
+      document.getElementById(\"skor\").innerText = \"Skor: \" + skor;
+      indeks++;
+      setTimeout(tampilkanSoal, 1500);
+    }
+
+    function simpanLeaderboard(nama, skor) {
+      let board = JSON.parse(localStorage.getItem(\"leaderboard\")) || [];
+      board.push({ nama, skor });
+      board.sort((a, b) => b.skor - a.skor);
+      board = board.slice(0, 10); // Top 10
+      localStorage.setItem(\"leaderboard\", JSON.stringify(board));
+    }
+
+    function tampilkanLeaderboard() {
+      const board = JSON.parse(localStorage.getItem(\"leaderboard\")) || [];
+      let html = \"<h3>🏆 Leaderboard</h3><ol>\";
+      board.forEach(p => {
+        html += `<li>${p.nama} - ${p.skor}</li>`;
+      });
+      html += \"</ol>\";
+      document.getElementById(\"soal\").innerHTML += html;
+    }
+  </script>
+</body>
+</html>
